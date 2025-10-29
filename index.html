@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Correção de Redação via IA</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+    <style>
+        /* Fonte Inter */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f4f8; /* Azul-claro de fundo */
+        }
+        /* Animação de fade-in */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .fade-in {
+            animation: fadeIn 0.5s ease-out;
+        }
+        /* Oculta a scrollbar */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+</head>
+<body class="text-gray-800">
+
+    <header class="bg-blue-700 text-white shadow-md">
+        <div class="container mx-auto max-w-4xl p-6 flex justify-center items-center">
+            <h1 class="text-3xl font-bold">Correção de Redação</h1>
+        </div>
+    </header>
+
+    <main class="container mx-auto max-w-4xl p-6">
+        
+        <section class="bg-white p-6 rounded-lg shadow-lg border border-blue-200">
+            <form id="formNovaRedacao" class="space-y-4">
+                <div>
+                    <label for="temaRedacao" class="block text-sm font-medium text-gray-700 mb-1">Tema</label>
+                    <input type="text" id="temaRedacao" required class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Ex: Desafios da saúde mental na sociedade contemporânea">
+                </div>
+                <div>
+                    <label for="textoRedacao" class="block text-sm font-medium text-gray-700 mb-1">Redação</label>
+                    <textarea id="textoRedacao" rows="15" required class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Cole sua redação completa aqui..."></textarea>
+                </div>
+                <button type="submit" id="btnCorrigirIA" class="w-full bg-purple-600 text-white font-semibold py-3 px-4 rounded-md hover:bg-purple-700 transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 flex items-center justify-center text-lg">
+                    <i data-lucide="sparkles" class="w-5 h-5 mr-2"></i>
+                    Corrigir com IA
+                </button>
+            </form>
+        </section>
+
+        <section id="secaoResultado" class="hidden mt-8">
+            <h2 class="text-2xl font-semibold mb-4 text-blue-800">
+                Resultado da Correção
+            </h2>
+            <div id="resultadoFeedback" class="bg-white p-6 rounded-lg shadow-lg border border-blue-200 space-y-6">
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="flex flex-col items-center justify-center bg-blue-600 text-white p-6 rounded-lg">
+                        <span class="text-xl font-bold">Nota Final:</span>
+                        <span id="feedbackNotaFinal" class="text-7xl font-bold">1000</span>
+                    </div>
+                    <div class="space-y-2">
+                        <h5 class="text-lg font-semibold text-gray-700">Comentários Gerais:</h5>
+                        <div id="feedbackComentariosGerais" class="bg-gray-50 border border-gray-200 rounded-md p-4 whitespace-pre-wrap text-sm max-h-48 overflow-y-auto no-scrollbar"></div>
+                    </div>
+                </div>
+
+                <div>
+                    <h5 class="text-lg font-semibold text-gray-700 mb-3">Notas por Competência:</h5>
+                    <div id="feedbackCompetencias" class="space-y-4">
+                        </div>
+                </div>
+
+            </div>
+        </section>
+
+    </main>
+
+    <div id="messageBox" class="fixed bottom-4 right-4 z-50 p-4 rounded-lg shadow-lg text-white transition-all duration-300 opacity-0 translate-y-2 pointer-events-none">
+        <span id="messageText"></span>
+    </div>
+
+    <script>
+        // --- Elementos da UI ---
+        const form = document.getElementById('formNovaRedacao');
+        const temaInput = document.getElementById('temaRedacao');
+        const textoInput = document.getElementById('textoRedacao');
+        const submitButton = document.getElementById('btnCorrigirIA');
+        const secaoResultado = document.getElementById('secaoResultado');
+        const resultadoContainer = document.getElementById('resultadoFeedback');
+
+        // --- Event Listener ---
+        
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const tema = temaInput.value;
+            const texto = textoInput.value;
+
+            if (!tema || !texto) {
+                showMessage("Preencha o tema e a redação.", "error");
+                return;
+            }
+
+            // Define o estado de carregamento
+            submitButton.disabled = true;
+            submitButton.innerHTML = '<i class="w-5 h-5 mr-2 animate-spin" data-lucide="loader-2"></i> Analisando...';
+            lucide.createIcons(); // Recria o ícone
+            secaoResultado.classList.add('hidden'); // Esconde resultado anterior
+
+            try {
+                // 1. Chama a NOSSA Netlify Function
+                const feedbackIA = await getAICorrecao(tema, texto);
+                
+                // 2. Calcula a nota final
+                const notaFinal = (feedbackIA.notaC1 || 0) + 
+                                  (feedbackIA.notaC2 || 0) + 
+                                  (feedbackIA.notaC3 || 0) + 
+                                  (feedbackIA.notaC4 || 0) + 
+                                  (feedbackIA.notaC5 || 0);
+                
+                feedbackIA.notaFinal = notaFinal;
+
+                // 3. Renderiza o feedback
+                renderFeedback(feedbackIA);
+                showMessage("Correção concluída!", "success");
+
+            } catch (error) {
+                console.error("Erro na correção com IA:", error);
+                showMessage(error.message || "Falha ao corrigir com IA. Tente novamente.", "error");
+            } finally {
+                // Restaura o botão
+                submitButton.disabled = false;
+                submitButton.innerHTML = '<i data-lucide="sparkles" class="w-5 h-5 mr-2"></i> Corrigir com IA';
+                lucide.createIcons();
+            }
+        });
+
+        // --- Renderização do Feedback ---
+
+        function renderFeedback(fb) {
+            document.getElementById('feedbackNotaFinal').textContent = fb.notaFinal;
+            document.getElementById('feedbackComentariosGerais').textContent = fb.comentariosGerais || "Sem comentários gerais.";
+            
+            const competenciasContainer = document.getElementById('feedbackCompetencias');
+            competenciasContainer.innerHTML = `
+                <div class="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                    <p class="font-semibold text-base">Competência 1: <span class="text-blue-700">${fb.notaC1}</span></p>
+                    <p class="text-sm text-gray-600 mt-1">${fb.comentarioC1 || 'Sem comentários.'}</p>
+                </div>
+                <div class="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                    <p class="font-semibold text-base">Competência 2: <span class="text-blue-700">${fb.notaC2}</span></p>
+                    <p class="text-sm text-gray-600 mt-1">${fb.comentarioC2 || 'Sem comentários.'}</p>
+                </div>
+                <div class="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                    <p class="font-semibold text-base">Competência 3: <span class="text-blue-700">${fb.notaC3}</span></p>
+                    <p class="text-sm text-gray-600 mt-1">${fb.comentarioC3 || 'Sem comentários.'}</p>
+                </div>
+                <div class="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                    <p class="font-semibold text-base">Competência 4: <span class="text-blue-700">${fb.notaC4}</span></p>
+                    <p class="text-sm text-gray-600 mt-1">${fb.comentarioC4 || 'Sem comentários.'}</p>
+                </div>
+                <div class="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                    <p class="font-semibold text-base">Competência 5: <span class="text-blue-700">${fb.notaC5}</span></p>
+                    <p class="text-sm text-gray-600 mt-1">${fb.comentarioC5 || 'Sem comentários.'}</p>
+                </div>
+            `;
+            
+            // Mostra a seção de resultado com animação
+            secaoResultado.classList.remove('hidden');
+            secaoResultado.classList.add('fade-in');
+        }
+
+        // --- Chamada à NOSSA API (Netlify Function) ---
+
+        /**
+         * Chama a nossa Netlify Function segura.
+         * @param {string} tema - O tema da redação.
+         * @param {string} texto - O texto da redação.
+         * @returns {Promise<object>} - O objeto de feedback estruturado.
+         */
+        async function getAICorrecao(tema, texto) {
+            // Este é o "endereço" da nossa Netlify Function
+            const apiEndpoint = "/.netlify/functions/corrigir";
+
+            const response = await fetch(apiEndpoint, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ tema, texto })
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || `Erro ${response.status}`);
+            }
+
+            return await response.json();
+        }
+
+
+        // --- Funções Auxiliares (Mensagens) ---
+
+        function showMessage(message, type = "success") {
+            const msgBox = document.getElementById('messageBox');
+            const msgText = document.getElementById('messageText');
+            
+            msgText.textContent = message;
+            msgBox.className = msgBox.className.replace(/bg-(green|red)-600/g, ''); // Limpa cores antigas
+            
+            if (type === 'success') {
+                msgBox.classList.add('bg-green-600');
+            } else {
+                msgBox.classList.add('bg-red-600');
+            }
+
+            msgBox.classList.remove('opacity-0', 'translate-y-2');
+            
+            setTimeout(() => {
+                msgBox.classList.add('opacity-0', 'translate-y-2');
+            }, 3000);
+        }
+
+        // --- Inicialização da Aplicação ---
+        
+        // Inicializa os ícones do Lucide
+        lucide.createIcons();
+
+    </script>
+</body>
+</html>

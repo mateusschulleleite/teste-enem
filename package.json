@@ -1,0 +1,12 @@
+{
+  "name": "corretor-enem-netlify",
+  "version": "1.0.0",
+  "description": "Corretor de redação com Netlify Functions e Gemini",
+  "main": "index.html",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "@google/generative-ai": "^0.14.1"
+  }
+}

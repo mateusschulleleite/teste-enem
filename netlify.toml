@@ -1,0 +1,10 @@
+[build]
+  # Comando para instalar as dependências (o SDK do Google)
+  command = "npm install"
+  
+  # Pasta onde as functions estão
+  functions = "netlify/functions"
+
+[functions]
+  # Configuração para o "bundler" (empacotador) das functions
+  node_bundler = "esbuild"

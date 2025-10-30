@@ -1,4 +1,3 @@
-require("dotenv").config();
 // Importa o SDK oficial do Google AI
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 
@@ -86,4 +85,5 @@ TEXTO:
       body: JSON.stringify({ error: "Falha ao processar a correção no servidor." }),
     };
   }
+
 };

@@ -53,7 +53,7 @@ exports.handler = async (event) => {
     // 1. Inicializa o modelo
     // Usando o gemini-1.5-flash, que é excelente para isso e suporta o modo JSON
     const model = genAI.getGenerativeModel({
-      model: "gemini-1.5-flash-latest",
+      model: "gemini-1.5",
       systemInstruction: systemPrompt,
       generationConfig: {
         responseMimeType: "application/json",
@@ -87,3 +87,4 @@ TEXTO:
   }
 
 };
+

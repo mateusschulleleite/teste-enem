@@ -1,3 +1,4 @@
+require("dotenv").config();
 // Importa o SDK oficial do Google AI
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 
